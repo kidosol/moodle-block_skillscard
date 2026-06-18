@@ -71,7 +71,7 @@ class block_skillscard extends block_base {
         $this->content->footer = '';
 
         // Get data.
-        $sql = "SELECT COALESCE(c.scaleid, cf.scaleid, 0) AS scaleidx, c.shortname as compname, mc.grade as grade
+        $sql = "SELECT mc.id, COALESCE(c.scaleid, cf.scaleid, 0) AS scaleidx, c.shortname as compname, mc.grade as grade
                   FROM {competency_usercomp} mc
                   JOIN {user} mu on mu.id = mc.userid
                   JOIN {competency} c on c.id = mc.competencyid
