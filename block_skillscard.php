@@ -28,7 +28,6 @@
  * Skills Card block implementation.
  */
 class block_skillscard extends block_base {
-
     /**
      * Initialise the block title.
      */
@@ -57,76 +56,58 @@ class block_skillscard extends block_base {
             return $this->content;
         }
 
-        $userid = optional_param('id', $USER->id, PARAM_INT);
+        $id = optional_param('id', 0, PARAM_INT);
+        $user = $USER;
 
-        // Security check: Only admins can view other people's cards.
-        if ($userid != $USER->id && !is_siteadmin()) {
-            return null;
+        // Load user.
+        if (is_siteadmin() && $id) {
+            $user = $DB->get_record('user', ['id' => $id], '*', MUST_EXIST);
+        } else if ($id) {
+            return;
         }
 
-        $this->content = new stdClass();
-        $this->content->text = '';
+        $this->content         = new stdClass();
+        $this->content->text   = '';
         $this->content->footer = '';
 
-        // Optimized SQL: Join the scale table here so we don't query inside the loop.
-        $sql = "SELECT mc.id, 
-                       c.shortname AS compname, 
-                       mc.grade, 
-                       s.scale AS scalerecord
+        // Get data.
+        $sql = "SELECT mc.id, COALESCE(c.scaleid, cf.scaleid, 0) AS scaleidx, c.shortname as compname, mc.grade as grade
                   FROM {competency_usercomp} mc
-                  JOIN {competency} c ON c.id = mc.competencyid
-             LEFT JOIN {competency_framework} cf ON cf.id = c.competencyframeworkid
-             LEFT JOIN {scale} s ON s.id = COALESCE(c.scaleid, cf.scaleid)
+                  JOIN {user} mu on mu.id = mc.userid
+                  JOIN {competency} c on c.id = mc.competencyid
+             LEFT JOIN {competency_framework} cf on cf.id = c.competencyframeworkid
                  WHERE mc.userid = :userid
-              ORDER BY c.shortname ASC";
+              ORDER BY mc.userid";
 
-        $skillscard = $DB->get_records_sql($sql, ['userid' => $userid]);
-
+        $skillscard = $DB->get_records_sql($sql, ['userid' => $user->id]);
         if (empty($skillscard)) {
             $this->content->text = get_string('noskillscard', 'block_skillscard');
             return $this->content;
         }
 
+        // Render data.
         $items = '';
         foreach ($skillscard as $sc) {
-            $grade = '';
-            if (!empty($sc->scalerecord) && !empty($sc->grade)) {
-                $scales = explode(',', $sc->scalerecord);
-                // Scales in Moodle are 1-indexed.
-                $grade = $scales[$sc->grade - 1] ?? '';
-            }
+            $values = $DB->get_field('scale', 'scale', ['id' => $sc->scaleidx]);
+            $scales = $values ? explode(',', $values) : [];
+            $grade = $scales[$sc->grade - 1] ?? '';
+            $skill = format_text($sc->compname, FORMAT_PLAIN);
 
-            $skillname = format_string($sc->compname);
-
-            // Icon with Bootstrap padding and float classes.
             $icon = html_writer::tag('i', '', [
-                'class' => 'fa fa-trophy fa-5x text-primary float-left p-2',
+                'class' => 'fa fa-trophy fa-5x text-primary',
+                'style' => 'float: left; padding: 10px;',
             ]);
-
-            $content = html_writer::span($icon);
-            $content .= html_writer::empty_tag('br');
-
+            $content = html_writer::tag('span', $icon) . html_writer::empty_tag('br');
             if ($grade !== '') {
-                $content .= html_writer::tag('div', 
-                    get_string('rank', 'block_skillscard') . ' ' . s($grade), 
-                    ['class' => 'font-weight-bold']
-                );
+                $content .= get_string('rank', 'block_skillscard') . ' ' . s($grade) . html_writer::empty_tag('br');
             }
+            $content .= get_string('competency', 'block_skillscard') . ' ' . $skill;
 
-            $content .= html_writer::tag('div', 
-                get_string('competency', 'block_skillscard') . ' ' . $skillname
-            );
-
-            // Item wrapper using Bootstrap 'text-center' and 'clearfix'.
-            $items .= html_writer::tag('li', $content, [
-                'class' => 'text-center clearfix mb-3',
-            ]);
+            $items .= html_writer::tag('li', $content, ['style' => 'text-align: center;']);
+            $items .= html_writer::tag('div', '', ['style' => 'clear: both;']);
         }
 
-        $this->content->text = html_writer::tag('ul', $items, [
-            'class' => 'list-unstyled',
-        ]);
-
+        $this->content->text .= html_writer::tag('ul', $items, ['style' => 'list-style: none;']);
         return $this->content;
     }
 }
