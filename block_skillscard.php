@@ -63,19 +63,19 @@ class block_skillscard extends block_base {
         if (is_siteadmin() && $id) {
             $user = $DB->get_record('user', ['id' => $id], '*', MUST_EXIST);
         } else if ($id) {
-            return;
+            return null;
         }
 
         $this->content         = new stdClass();
         $this->content->text   = '';
         $this->content->footer = '';
 
-        // Get data.
-        $sql = "SELECT mc.id, COALESCE(c.scaleid, cf.scaleid, 0) AS scaleidx, c.shortname as compname, mc.grade as grade
+        // Get data. 
+        $sql = "SELECT mc.id, COALESCE(c.scaleid, cf.scaleid, 0) AS scaleidx, c.shortname AS compname, mc.grade AS grade
                   FROM {competency_usercomp} mc
-                  JOIN {user} mu on mu.id = mc.userid
-                  JOIN {competency} c on c.id = mc.competencyid
-             LEFT JOIN {competency_framework} cf on cf.id = c.competencyframeworkid
+                  JOIN {user} mu ON mu.id = mc.userid
+                  JOIN {competency} c ON c.id = mc.competencyid
+             LEFT JOIN {competency_framework} cf ON cf.id = c.competencyframeworkid
                  WHERE mc.userid = :userid
               ORDER BY mc.userid";
 
