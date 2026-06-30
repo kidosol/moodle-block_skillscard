@@ -27,12 +27,14 @@
 /**
  * Skills Card block implementation.
  */
-class block_skillscard extends block_base {
+class block_skillscard extends block_base
+{
     /**
      * Initialise the block title.
      */
-    public function init() {
-        $this->title = get_string('skillscard', 'block_skillscard');
+    public function init()
+    {
+        $this->title = get_string("skillscard", "block_skillscard");
     }
 
     /**
@@ -40,7 +42,8 @@ class block_skillscard extends block_base {
      *
      * @return bool
      */
-    public function instance_allow_multiple() {
+    public function instance_allow_multiple()
+    {
         return true;
     }
 
@@ -49,26 +52,27 @@ class block_skillscard extends block_base {
      *
      * @return stdClass|null
      */
-    public function get_content() {
+    public function get_content()
+    {
         global $USER, $DB;
 
         if ($this->content !== null) {
             return $this->content;
         }
 
-        $id = optional_param('id', 0, PARAM_INT);
+        $id = optional_param("id", 0, PARAM_INT);
         $user = $USER;
 
         // Load user.
         if (is_siteadmin() && $id) {
-            $user = $DB->get_record('user', ['id' => $id], '*', MUST_EXIST);
-        } else if ($id) {
+            $user = $DB->get_record("user", ["id" => $id], "*", MUST_EXIST);
+        } elseif ($id) {
             return;
         }
 
-        $this->content         = new stdClass();
-        $this->content->text   = '';
-        $this->content->footer = '';
+        $this->content = new stdClass();
+        $this->content->text = "";
+        $this->content->footer = "";
 
         // Get data.
         $sql = "SELECT mc.id, COALESCE(c.scaleid, cf.scaleid, 0) AS scaleidx, c.shortname as compname, mc.grade as grade
@@ -79,35 +83,48 @@ class block_skillscard extends block_base {
                  WHERE mc.userid = :userid
               ORDER BY mc.userid";
 
-        $skillscard = $DB->get_records_sql($sql, ['userid' => $user->id]);
+        $skillscard = $DB->get_records_sql($sql, ["userid" => $user->id]);
         if (empty($skillscard)) {
-            $this->content->text = get_string('noskillscard', 'block_skillscard');
+            $this->content->text = get_string(
+                "noskillscard",
+                "block_skillscard"
+            );
             return $this->content;
         }
 
         // Render data.
-        $items = '';
+        $items = "";
         foreach ($skillscard as $sc) {
-            $values = $DB->get_field('scale', 'scale', ['id' => $sc->scaleidx]);
-            $scales = $values ? explode(',', $values) : [];
-            $grade = $scales[$sc->grade - 1] ?? '';
+            $values = $DB->get_field("scale", "scale", ["id" => $sc->scaleidx]);
+            $scales = $values ? explode(",", $values) : [];
+            $grade = $scales[$sc->grade - 1] ?? "";
             $skill = format_text($sc->compname, FORMAT_PLAIN);
 
-            $icon = html_writer::tag('i', '', [
-                'class' => 'fa fa-trophy fa-5x text-primary',
-                'style' => 'float: left; padding: 10px;',
+            $icon = html_writer::tag("i", "", [
+                "class" => "fa fa-trophy fa-5x text-primary",
+                "style" => "float: left; padding: 10px;",
             ]);
-            $content = html_writer::tag('span', $icon) . html_writer::empty_tag('br');
-            if ($grade !== '') {
-                $content .= get_string('rank', 'block_skillscard') . ' ' . s($grade) . html_writer::empty_tag('br');
+            $content =
+                html_writer::tag("span", $icon) . html_writer::empty_tag("br");
+            if ($grade !== "") {
+                $content .=
+                    get_string("rank", "block_skillscard") .
+                    " " .
+                    s($grade) .
+                    html_writer::empty_tag("br");
             }
-            $content .= get_string('competency', 'block_skillscard') . ' ' . $skill;
+            $content .=
+                get_string("competency", "block_skillscard") . " " . $skill;
 
-            $items .= html_writer::tag('li', $content, ['style' => 'text-align: center;']);
-            $items .= html_writer::tag('div', '', ['style' => 'clear: both;']);
+            $items .= html_writer::tag("li", $content, [
+                "style" => "text-align: center;",
+            ]);
+            $items .= html_writer::tag("div", "", ["style" => "clear: both;"]);
         }
 
-        $this->content->text .= html_writer::tag('ul', $items, ['style' => 'list-style: none;']);
+        $this->content->text .= html_writer::tag("ul", $items, [
+            "style" => "list-style: none;",
+        ]);
         return $this->content;
     }
 }
